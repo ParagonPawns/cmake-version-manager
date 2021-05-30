@@ -1,0 +1,18 @@
+[package]
+name = "cmake-version-manager"
+version = "0.1.0"
+authors = ["diego50 <diego@paragonpawns.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "cvm"
+path = "src/main.rs"
+
+[dependencies]
+sys-info = "0.9.0"
+ansi-builder = "0.1.4"
+term-inquiry = "0.1.0"
+curl = "0.4.38"
+json = "0.12.4"
