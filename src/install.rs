@@ -136,7 +136,7 @@ fn post_19_1(cvm_home: &str, version: &str) -> HelperStrings {
         None => panic!("Failed to get the os version")
     };
 
-    let mac_version = parse_version(os_version);
+    let mac_version = parse_version(&os_version);
 
     let dw_name = if mac_version.major < 10 || mac_version.major == 10 && mac_version.minor <= 10 {
         "macos10.10-universal"
