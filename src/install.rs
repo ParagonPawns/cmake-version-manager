@@ -266,9 +266,6 @@ fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
     }
 }
 
-
-
-#[cfg(target_os="linux")] #[cfg(target_arch="x86_64")]
 fn download(cvm_home: &str, version: &str) -> bool {
     let strings = download_strings(cvm_home, version);
     let mut easy = Easy2::new(Collector(Vec::new()));

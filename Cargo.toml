@@ -1,6 +1,6 @@
 [package]
 name = "cmake-version-manager"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["diego50 <diego@paragonpawns.com>"]
 edition = "2018"
 license = "MIT"
@@ -15,7 +15,7 @@ name = "cvm"
 path = "src/main.rs"
 
 [target.'cfg(target_os="macos")'.dependencies]
-sys-info = "0.9.0"
+sysinfo = "0.18.0"
 
 [dependencies]
 ansi-builder = "0.1.4"
