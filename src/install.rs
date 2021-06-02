@@ -266,6 +266,70 @@ fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
     }
 }
 
+#[cfg(windows)]
+fn post_19(cvm_home: &str, version: &str) -> HelperStrings {
+    let arch = if cfg!(target_arch="x86") {
+        "windows-i386"
+    } else {
+        "windows-x86_64"
+    };
+
+    let name = format!("cmake-{}", version);
+    let server_name = format!("{}-{}", name, arch);
+    let download_url = format!(
+        "https://github.com/Kitware/CMake/releases/download/v{}/{}.zip",
+        version,
+        server_name
+    );
+
+    let bins_path = format!("{}/bins", cvm_home);
+    let save_path = format!("{}/{}.zip", bins_path, name);
+
+    HelperStrings {
+        bins_path,
+        download_url,
+        save_path,
+        server_name,
+    }
+}
+
+#[cfg(windows)]
+fn pre_20(cvm_home: &str, version: &str) -> HelperStrings {
+    let arch = if cfg!(target_arch="x86") {
+        "32-x86"
+    } else {
+        "64-x64"
+    };
+
+    let name = format!("cmake-{}", version);
+    let server_name = format!("{}-win{}", name, arch);
+    let download_url = format!(
+        "https://github.com/Kitware/CMake/releases/download/v{}/{}.zip",
+        version,
+        server_name
+    );
+
+    let bins_path = format!("{}/bins", cvm_home);
+    let save_path = format!("{}/{}.zip", bins_path, name);
+
+    HelperStrings {
+        bins_path,
+        download_url,
+        save_path,
+        server_name,
+    }
+}
+
+#[cfg(windows)]
+fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
+    let cmake_version = parse_version(version);
+    if cmake_version.minor >= 20 {
+        return post_19(cvm_home, version)
+    }
+
+    pre_20(cvm_home, version)
+}
+
 fn download(cvm_home: &str, version: &str) -> bool {
     let strings = download_strings(cvm_home, version);
     let mut easy = Easy2::new(Collector(Vec::new()));
