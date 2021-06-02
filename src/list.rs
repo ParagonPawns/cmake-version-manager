@@ -38,7 +38,6 @@ pub fn list_releases(args: &Vec<String>, cvm_home: &str) {
         return
     }
 
-    println!("{:?}\n{:?}", installed, releases);
     for release in releases {
         print_release(&release, &current, &installed);
     }
@@ -53,8 +52,6 @@ fn print_release(release: &str, current: &str, installed: &Vec<String>) {
     } else {
         ""
     };
-
-    println!("{}-{}-{}", release, current, is_installed);
 
     AnsiBuilder::new()
         .text(&format!("    {} ", release))

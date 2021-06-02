@@ -1,7 +1,9 @@
+mod help;
 mod install;
 mod list;
 mod log;
 mod releases;
+mod remove;
 mod setup;
 mod switch;
 mod version;
@@ -33,6 +35,11 @@ fn main() {
         return
     }
 
+    if args[1] == "--help" || args[1] == "-h" {
+        help::dislay_help();
+        return
+    }
+
     let cvm_home = match std::env::var("HOME") {
         Ok(path) => path + CVM_DIR,
         Err(error) => {
@@ -46,21 +53,47 @@ fn main() {
         return
     }
 
-    if args[1] == "list" {
-        list::list_releases(&args, &cvm_home);
-        return
-    }
+    match args[1].as_str() {
+        "current" => {
+            match releases::currently_installed(&cvm_home) {
+                Ok(version) =>
+                    println!("Currently selected CMake version is v{}", version),
+                Err(error) =>
+                    log::log_error(
+                        &format!("Failed to retrieve currently selected CMake install. ({})", error)
+                    )
+            }
+            return
+        },
+        "list" => {
+            list::list_releases(&args, &cvm_home);
+            return
+        },
+        "install" => {
+            install::install_version(&args, &cvm_home);
+            return
+        },
+        "remove" => {
+            remove::remove(&args, &cvm_home);
+            return
+        },
+        "switch" => {
+            switch::switch_version(&args, &cvm_home);
+            return
+        },
+        _ => {
+            log_error(
+                "The first argument does not math whith any option we support. \
+                please use 'cvm --help' to view all possible options. Given \
+                options: "
+            );
 
-    if args[1] == "install" {
-        install::install_version(&args, &cvm_home);
-        return
-    }
-
-    if args[1] == "switch" {
-        switch::switch_version(&args, &cvm_home);
-        return
+            for i in 1..args.len() {
+                print!("{} ", args[i]);
+            }
+        }
     }
 }
 
 use curl::easy::{ Handler, WriteError };
-use switch::switch_version;
+use log::log_error;

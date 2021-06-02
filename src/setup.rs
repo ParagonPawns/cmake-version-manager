@@ -12,7 +12,8 @@ fn validate_caches(cvm_home: &str) {
         }
     };
 
-    let latest_release = latest_release();
+    let latest = latest_release();
+    let latest_release = &latest[1..];
     let mut line = String::new();
 
     if let Err(error) = reader.read_line(&mut line) {
@@ -21,6 +22,7 @@ fn validate_caches(cvm_home: &str) {
     }
 
     line.pop();
+
     // check if cache is updated.
     if line == latest_release {
         return
@@ -56,6 +58,7 @@ pub fn setup_cvm(cvm_home: &str) -> bool {
         return true
     }
 
+    println!("'.cvm' directory is not set up. Setting up now...");
     // create our directory
     match fs::create_dir(cvm_home) {
         Ok(..) => {},
@@ -72,7 +75,6 @@ pub fn setup_cvm(cvm_home: &str) -> bool {
             return false
         }
     };
-
 
     match fs::File::create(String::from(cvm_home) + crate::CVM_CACHE) {
         Ok(..) => {},

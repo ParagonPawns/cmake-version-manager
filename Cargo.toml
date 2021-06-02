@@ -3,6 +3,10 @@ name = "cmake-version-manager"
 version = "0.1.0"
 authors = ["diego50 <diego@paragonpawns.com>"]
 edition = "2018"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/ParagonPawns/cmake-version-manager"
+description = "CMake version helps manage installed versions of cmake."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,8 +14,10 @@ edition = "2018"
 name = "cvm"
 path = "src/main.rs"
 
-[dependencies]
+[target.'cfg(target_os="macos")'.dependencies]
 sys-info = "0.9.0"
+
+[dependencies]
 ansi-builder = "0.1.4"
 term-inquiry = "0.1.0"
 curl = "0.4.38"
