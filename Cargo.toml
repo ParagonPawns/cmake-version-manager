@@ -18,7 +18,7 @@ path = "src/main.rs"
 sysinfo = "0.18.0"
 
 [dependencies]
-ansi-builder = "0.1.4"
-term-inquiry = "0.1.0"
+ansi-builder = "0.1.6"
+term-inquiry = "0.1.1"
 curl = "0.4.38"
 json = "0.12.4"

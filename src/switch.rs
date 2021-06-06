@@ -20,12 +20,12 @@ pub fn switch_version(args: &Vec<String>, cvm_home: &str) {
             builder = builder.add_item(&installed[i], installed[i].clone());
         }
 
-        let result = builder.render();
+        let result = builder.inquire();
 
         match result {
             Ok(selected) => selected,
             Err(inq_msg) => match inq_msg {
-                InqueryMessage::CloseRequested => {
+                InquiryMessage::CloseRequested => {
                     println!("\nSession was canceled. Exiting...");
                     return
                 },
@@ -84,7 +84,7 @@ pub fn switch(version: &str, cvm_home:&str) {
     }
 }
 
-use term_inquiry::{ List, InqueryMessage };
+use term_inquiry::{ List, InquiryMessage };
 
 use crate::releases::{
     currently_installed,

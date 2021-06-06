@@ -2,6 +2,11 @@
 CMake Version Manager (`cvm`) is a command line tool that help manage currently
 installed versions of cmake.
 
+## Supported Platforms
+ * Linux
+ * OSX
+ * Windows (N/A but will be done asap)
+
 ## Install
 To install `cvm` you will need to have cargo. Installing Rust will provide
 cargo tools. Visit https://www.rust-lang.org/tools/install for installation
@@ -47,7 +52,3 @@ $ cvm list
 $ cvm list --all
 ```
 
-## Supported Platforms
- * Linux
- * OSX
- * Windows (N/A but will be done asap)

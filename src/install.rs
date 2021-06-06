@@ -32,12 +32,12 @@ pub fn install_version(args: &Vec<String>, cvm_home: &str) {
             builder = builder.add_item(&releases[i], releases[i].clone());
         }
 
-        let result = builder.render();
+        let result = builder.inquire();
 
         match result {
             Ok(selected) => selected,
             Err(inq_msg) => match inq_msg {
-                InqueryMessage::CloseRequested => {
+                InquiryMessage::CloseRequested => {
                     println!("\nSession was canceled. Exiting...");
                     return
                 },
@@ -418,13 +418,20 @@ fn download(cvm_home: &str, version: &str) -> bool {
     }
 
     println!("Extracting...");
+    println!("{}-{}", strings.save_path, strings.bins_path);
     let command = format!(
         "tar -xf {} -C {}",
         strings.save_path,
         strings.bins_path
     );
 
-    let result = std::process::Command::new("sh")
+    #[cfg(unix)]
+    let program = "sh";
+
+    #[cfg(windows)]
+    let program = "powershell";
+
+    let result = std::process::Command::new(program)
         .arg("-c")
         .arg(&command)
         .stdout(Stdio::piped())
@@ -468,7 +475,7 @@ use std::process::Stdio;
 
 use curl::easy::{ Easy2, List };
 
-use term_inquiry::{ List as IList, InqueryMessage };
+use term_inquiry::{ List as IList, InquiryMessage };
 
 use crate::switch::switch;
 use crate::releases::{

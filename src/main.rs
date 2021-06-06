@@ -40,7 +40,12 @@ fn main() {
         return
     }
 
-    let cvm_home = match std::env::var("HOME") {
+    #[cfg(unix)]
+    let home = "HOME";
+    #[cfg(windows)]
+    let home = "USERPROFILE";
+
+    let cvm_home = match std::env::var(home) {
         Ok(path) => path + CVM_DIR,
         Err(error) => {
             log::log_error(&format!("Failed to find $HOME path. ({})", error));
