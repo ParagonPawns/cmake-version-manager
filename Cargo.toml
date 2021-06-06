@@ -1,6 +1,6 @@
 [package]
 name = "cmake-version-manager"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["diego50 <diego@paragonpawns.com>"]
 edition = "2018"
 license = "MIT"

@@ -5,7 +5,7 @@ installed versions of cmake.
 ## Supported Platforms
  * Linux
  * OSX
- * Windows (N/A but will be done asap)
+ * Windows 10
 
 ## Install
 To install `cvm` you will need to have cargo. Installing Rust will provide
@@ -13,9 +13,9 @@ cargo tools. Visit https://www.rust-lang.org/tools/install for installation
 steps. Once installed you can run `cargo install cmake-version-manager`.
 
 After installing make sure to add the following to your profiles
- * Linux: `export PATH=$HOME/.cvm/bins/current/bin:$PATH`
- * OSX: `export PATH=$HOME/.cvm/bins/current/CMAKE.app/Contents/bin:$PATH`
- * Windows: N/A but should be `$env:Path += ";$HOME/.cvm/bins/current/bin"`
+    Linux: `export PATH=$HOME/.cvm/bins/current/bin:$PATH`
+    OSX: `export PATH=$HOME/.cvm/bins/current/CMAKE.app/Contents/bin:$PATH`
+    Windows: `$env:Path += ";$HOME/.cvm/bins/current/bin"`
 
 ## Examples
 Below are some visual examples on how to use `cvm`. But keep in mind that at any
