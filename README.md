@@ -52,3 +52,9 @@ $ cvm list
 $ cvm list --all
 ```
 
+### Simplified
+```sh
+# Installs if the version does not exits. Otherwise switches it.
+cvm 3.19.6
+```
+

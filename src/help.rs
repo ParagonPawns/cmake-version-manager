@@ -8,6 +8,9 @@ OPTIONS:
     -h, --help              Shows list of command-line options.
     -v, --version           Shows the version of cvm
 
+    <cmake version>         Installs verson if it does not exist. Otherwise it
+                            switches to specified version.
+
     list [OPTIONS]          Lists versions of cmake that can be installed.
                             With no option will display past 10 releases.
         --all               Lists past 100 releases

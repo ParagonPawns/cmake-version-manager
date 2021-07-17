@@ -179,67 +179,13 @@ struct Version {
     patch: i32,
 }
 
-fn parse_version(version: &str) -> Version {
+fn parse_version(version: &str) -> utils::Version {
     let version_clean = match version.find('-') {
         Some(index) => &version[0..index],
         None => version
     };
 
-    let mut version_split = version_clean.split('.');
-
-    let major = match version_split.next() {
-        Some(item) => match item.parse::<i32>() {
-            Ok(value) => value,
-            Err(error) => {
-                log_error(
-                    &format!("Major value could not be parsed as an int.({})", error)
-                );
-                0
-            }
-        },
-        None => {
-            log_error("Failed to get major version number. Setting to 0.");
-            0
-        }
-    };
-
-    let minor = match version_split.next() {
-        Some(item) => match item.parse::<i32>() {
-            Ok(value) => value,
-            Err(error) => {
-                log_error(
-                    &format!("Minor value could not be parsed as an int.({})", error)
-                );
-                0
-            }
-        },
-        None => {
-            log_error("Failed to get minor version number. Setting to 0.");
-            0
-        }
-    };
-
-    let patch = match version_split.next() {
-        Some(item) => match item.parse::<i32>() {
-            Ok(value) => value,
-            Err(error) => {
-                log_error(
-                    &format!("Patch value could not be parsed as an int.({})", error)
-                );
-                0
-            }
-        },
-        None => {
-            log_error("Failed to get patch version number. Setting to 0.");
-            0
-        }
-    };
-
-    Version {
-        major,
-        minor,
-        patch,
-    }
+    utils::parse_version(version_clean)
 }
 
 #[cfg(target_os="linux")] #[cfg(target_arch="x86_64")]
@@ -418,9 +364,10 @@ fn download(cvm_home: &str, version: &str) -> bool {
     }
 
     println!("Extracting...");
-    println!("{}-{}", strings.save_path, strings.bins_path);
+    println!("{} - {}", strings.save_path, strings.bins_path);
+
     let command = format!(
-        "tar -xf {} -C {}",
+        "tar -xf \"{}\" -C \"{}\"",
         strings.save_path,
         strings.bins_path
     );
@@ -488,3 +435,4 @@ use crate::releases::{
 };
 use crate::Collector;
 use crate::log::log_error;
+use crate::utils;

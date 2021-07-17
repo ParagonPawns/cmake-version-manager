@@ -1,11 +1,13 @@
 mod help;
 mod install;
+mod install_or_switch;
 mod list;
 mod log;
 mod releases;
 mod remove;
 mod setup;
 mod switch;
+mod utils;
 mod version;
 
 const CVM_DIR: &'static str = "/.cvm";
@@ -86,9 +88,21 @@ fn main() {
             switch::switch_version(&args, &cvm_home);
             return
         },
-        _ => {
+        _ => { 
+            if utils::is_version_number(&args[1]) {
+                if args.len() != 2 {
+                    log_warning(
+                        "There are other arguments detected after cmake \
+                        version. Ignoring arguments after version."
+                    );
+                }
+
+                install_or_switch::install_or_switch(&args[1], &cvm_home);
+                return
+            }
+
             log_error(
-                "The first argument does not math whith any option we support. \
+                "The first argument does not match whith any option we support. \
                 please use 'cvm --help' to view all possible options. Given \
                 options: "
             );
@@ -101,4 +115,4 @@ fn main() {
 }
 
 use curl::easy::{ Handler, WriteError };
-use log::log_error;
+use log::{ log_error, log_warning };
