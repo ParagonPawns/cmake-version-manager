@@ -1,77 +1,53 @@
-pub fn releases() -> Vec<String> {
+pub fn releases() -> Result<Vec<Rc<str>>, Rc<str>> {
     let mut easy = Easy2::new(Collector(Vec::new()));
 
     let url = "https://api.github.com/repos/Kitware/CMake/releases?per_page=100";
 
-    if let Err(error) = easy.url(url) {
-        log_error(&format!(
+    easy.url(url).map_err(|error| {
+        Rc::from(format!(
             "Failed to set url for fetch cmake releases. ({})",
             error
-        ));
-        return Vec::new();
-    }
+        ))
+    })?;
 
-    if let Err(error) = easy.get(true) {
-        log_error(&format!("Failed to set request method as GET. ({})", error));
-        return Vec::new();
-    }
+    easy.get(true)
+        .map_err(|error| Rc::from(format!("Failed to set request method as GET. ({})", error)))?;
 
     let mut headers = List::new();
-    if let Err(error) = headers.append("Accept: application/vnd.github.v3+json") {
-        log_error(&format!(
-            "Failed to append header item to list. ({})",
-            error
-        ));
-        return Vec::new();
+    headers
+        .append("Accept: application/vnd.github.v3+json")
+        .map_err(|error| Rc::from(format!("Failed to append header item to list. ({})", error)))?;
+
+    headers
+        .append("User-Agent: request")
+        .map_err(|error| Rc::from(format!("Failed to append header item to list. ({})", error)))?;
+
+    easy.http_headers(headers)
+        .map_err(|error| Rc::from(format!("Failed to set http headers. ({})", error)))?;
+
+    easy.perform()
+        .map_err(|error| Rc::from(format!("Failed at executing request. ({})", error)))?;
+
+    let response_code = easy
+        .response_code()
+        .map_err(|error| Rc::from(format!("Failed to retrieve response code. ({})", error)))?;
+
+    if response_code != 200 {
+        return Err(format!("Response failed with error: {}", response_code).into());
     }
 
-    if let Err(error) = headers.append("User-Agent: request") {
-        log_error(&format!(
-            "Failed to append header item to list. ({})",
-            error
-        ));
-        return Vec::new();
-    }
-
-    if let Err(error) = easy.http_headers(headers) {
-        log_error(&format!("Failed to set http headers. ({})", error));
-        return Vec::new();
-    }
-
-    if let Err(error) = easy.perform() {
-        log_error(&format!("Failed at executing request. ({})", error));
-        return Vec::new();
-    }
-
-    match easy.response_code() {
-        Ok(code) => {
-            if code != 200 {
-                log_error(&format!("Response failed with error: {}", code))
-            }
-        }
-        Err(error) => {
-            log_error(&format!("Failed to retrieve response code. ({})", error));
-            return Vec::new();
-        }
-    }
-
-    let json_data = match json::parse(&String::from_utf8_lossy(&easy.get_ref().0)) {
-        Ok(data) => data,
-        Err(error) => {
-            log_error(&format!("Failed to parse json data. ({})", error));
-            return Vec::new();
-        }
-    };
+    let json_data = json::parse(&String::from_utf8_lossy(&easy.get_ref().0))
+        .map_err(|error| Rc::from(format!("Failed to parse json data. ({})", error)))?;
 
     let mut releases = Vec::new();
     for i in 0..json_data.len() {
         match json_data[i]["tag_name"].as_str() {
-            Some(release) => releases.push(String::from(release)),
+            Some(release) => releases.push(release.into()),
             None => continue,
         };
     }
 
-    releases
+    Ok(releases)
 }
 
 pub fn cached_releases(cvm_home: &Path) -> Result<Vec<Rc<str>>, Rc<str>> {

@@ -25,7 +25,7 @@ fn validate_caches(cvm_home: &Path) -> Result<(), Rc<str>> {
     }
 
     println!("New release detected updating available versions...");
-    let releases = releases();
+    let releases = releases()?;
     let mut file = reader.into_inner();
 
     file.set_len(0)
@@ -34,8 +34,8 @@ fn validate_caches(cvm_home: &Path) -> Result<(), Rc<str>> {
     file.seek(std::io::SeekFrom::Start(0))
         .map_err(|error| Rc::from(format!("Failed to seek to beginning of file. ({})", error)))?;
 
-    for mut release in releases {
-        release.push('\n');
+    for release in releases {
+        let release = format!("{}\n", release);
         file.write(release[1..].as_bytes()).map_err(|error| {
             Rc::from(format!(
                 "Failed to write release to cache file. ({})",
