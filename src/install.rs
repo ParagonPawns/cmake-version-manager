@@ -90,7 +90,7 @@ struct HelperStrings {
 }
 
 #[cfg(target_os = "macos")]
-fn pre_19_2(cvm_home: &str, version: &str) -> HelperStrings {
+fn pre_19_2(cvm_home: &Path, version: &str) -> HelperStrings {
     let name = format!("cmake-{}", version);
     let server_name = format!("{}-Darwin-x86_64", name);
     let download_url = format!(
@@ -110,7 +110,7 @@ fn pre_19_2(cvm_home: &str, version: &str) -> HelperStrings {
 }
 
 #[cfg(target_os = "macos")]
-fn post_19_1(cvm_home: &Path, version: &str) -> HelperStrings {
+fn post_19_1(cvm_home: &Path, version: &str) -> Result<HelperStrings, Rc<str>> {
     let name = format!("cmake-{}", version);
 
     let system = System::new();
@@ -119,7 +119,7 @@ fn post_19_1(cvm_home: &Path, version: &str) -> HelperStrings {
         None => panic!("Failed to get the os version"),
     };
 
-    let mac_version = parse_version(&os_version);
+    let mac_version = parse_version(&os_version)?;
 
     let dw_name = if mac_version.major < 10 || mac_version.major == 10 && mac_version.minor <= 10 {
         "macos10.10-universal"
@@ -136,12 +136,12 @@ fn post_19_1(cvm_home: &Path, version: &str) -> HelperStrings {
     let bins_path = cvm_home.join(crate::CVM_BINS);
     let save_path = bins_path.clone().join(format!("{}.tar.gz", name));
 
-    HelperStrings {
+    Ok(HelperStrings {
         bins_path,
         download_url,
         save_path,
         server_name,
-    }
+    })
 }
 
 #[cfg(target_os = "macos")]
@@ -151,7 +151,7 @@ fn download_strings(cvm_home: &Path, version: &str) -> Result<HelperStrings, Rc<
         return Ok(pre_19_2(cvm_home, version));
     }
 
-    Ok(post_19_1(cvm_home, version))
+    post_19_1(cvm_home, version)
 }
 
 #[allow(dead_code)]
