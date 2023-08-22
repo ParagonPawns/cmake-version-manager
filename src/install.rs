@@ -50,7 +50,7 @@ fn get_tag(releases: &Vec<Rc<str>>, args: &Vec<Rc<str>>) -> Result<Rc<str>, Rc<s
     }
 
     if releases.is_empty() {
-        return Err(Rc::from("Seem that we do not have any cached CMake releases.\nTry cleaning with 'cvm remove --all' and try again"));
+        return Err("Seem that we do not have any cached CMake releases.\nTry cleaning with 'cvm remove --all' and try again".into());
     }
 
     let message = String::from("Please select a cmake verson to install:");
@@ -71,9 +71,9 @@ fn get_tag(releases: &Vec<Rc<str>>, args: &Vec<Rc<str>>) -> Result<Rc<str>, Rc<s
         Err(inq_msg) => match inq_msg {
             InquiryMessage::CloseRequested => {
                 println!("\nSession was canceled. Exiting...");
-                Ok(Rc::from(""))
+                Ok("".into())
             }
-            _ => Err(Rc::from("Inquiry failed. exiting session")),
+            _ => Err("Inquiry failed. exiting session".into()),
         },
     }
 }
@@ -106,7 +106,7 @@ fn pre_19_2(cvm_home: &str, version: &str) -> HelperStrings {
 }
 
 #[cfg(target_os = "macos")]
-fn post_19_1(cvm_home: &str, version: &str) -> HelperStrings {
+fn post_19_1(cvm_home: &Path, version: &str) -> HelperStrings {
     let name = format!("cmake-{}", version);
 
     let system = System::new();
@@ -141,13 +141,13 @@ fn post_19_1(cvm_home: &str, version: &str) -> HelperStrings {
 }
 
 #[cfg(target_os = "macos")]
-fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
-    let cmake_version = parse_version(version);
+fn download_strings(cvm_home: &Path, version: &str) -> Result<HelperStrings, Rc<str>> {
+    let cmake_version = parse_version(version)?;
     if cmake_version.minor < 19 || cmake_version.minor == 19 && cmake_version.patch <= 1 {
-        return pre_19_2(cvm_home, version);
+        return Ok(pre_19_2(cvm_home, version));
     }
 
-    post_19_1(cvm_home, version)
+    Ok(post_19_1(cvm_home, version))
 }
 
 #[allow(dead_code)]
@@ -157,7 +157,7 @@ struct Version {
     patch: i32,
 }
 
-fn parse_version(version: &str) -> utils::Version {
+fn parse_version(version: &str) -> Result<utils::Version, Rc<str>> {
     let version_clean = match version.find('-') {
         Some(index) => &version[0..index],
         None => version,
@@ -168,8 +168,8 @@ fn parse_version(version: &str) -> utils::Version {
 
 #[cfg(target_os = "linux")]
 #[cfg(target_arch = "x86_64")]
-fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
-    let cmake_version = parse_version(version);
+fn download_strings(cvm_home: &Path, version: &str) -> Result<HelperStrings, Rc<str>> {
+    let cmake_version = parse_version(version)?;
 
     let linux = if cmake_version.minor > 19 {
         "linux"
@@ -186,12 +186,12 @@ fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
     let bins_path = cvm_home.join(crate::CVM_BINS);
     let save_path = bins_path.clone().join(format!("{}.tar.gz", name));
 
-    HelperStrings {
+    Ok(HelperStrings {
         bins_path,
         download_url,
         save_path,
         server_name,
-    }
+    })
 }
 
 #[cfg(windows)]
@@ -247,17 +247,17 @@ fn pre_20(cvm_home: &Path, version: &str) -> HelperStrings {
 }
 
 #[cfg(windows)]
-fn download_strings(cvm_home: &Path, version: &str) -> HelperStrings {
-    let cmake_version = parse_version(version);
+fn download_strings(cvm_home: &Path, version: &str) -> Result<HelperStrings, Rc<str>> {
+    let cmake_version = parse_version(version)?;
     if cmake_version.minor >= 20 {
-        return post_19(cvm_home, version);
+        return Ok(post_19(cvm_home, version));
     }
 
-    pre_20(cvm_home, version)
+    Ok(pre_20(cvm_home, version))
 }
 
 fn download(cvm_home: &Path, version: &str) -> Result<(), Rc<str>> {
-    let strings = download_strings(cvm_home, version);
+    let strings = download_strings(cvm_home, version)?;
     let mut easy = Easy2::new(Collector(Vec::new()));
 
     easy.url(&strings.download_url).map_err(|error| {

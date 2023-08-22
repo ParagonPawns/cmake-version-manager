@@ -49,66 +49,35 @@ pub struct Version {
     pub patch: i32,
 }
 
-pub fn parse_version(version: &str) -> Version {
-    let mut version_split = version.split('.');
+pub fn parse_version(version: &str) -> Result<Version, Rc<str>> {
+    let version_split = version.split('.').collect::<Vec<&str>>();
 
-    let major = match version_split.next() {
-        Some(item) => match item.parse::<i32>() {
-            Ok(value) => value,
-            Err(error) => {
-                log_error(&format!(
-                    "Major value could not be parsed as an int.({})",
-                    error
-                ));
-                0
-            }
-        },
-        None => {
-            log_error("Failed to get major version number. Setting to 0.");
-            0
-        }
-    };
+    let major = version_split[0].parse::<i32>().map_err(|error| {
+        Rc::from(format!(
+            "Major value could not be parsed as an int.({})",
+            error
+        ))
+    })?;
 
-    let minor = match version_split.next() {
-        Some(item) => match item.parse::<i32>() {
-            Ok(value) => value,
-            Err(error) => {
-                log_error(&format!(
-                    "Minor value could not be parsed as an int.({})",
-                    error
-                ));
-                0
-            }
-        },
-        None => {
-            log_error("Failed to get minor version number. Setting to 0.");
-            0
-        }
-    };
+    let minor = version_split[1].parse::<i32>().map_err(|error| {
+        Rc::from(format!(
+            "Minor value could not be parsed as an int.({})",
+            error
+        ))
+    })?;
 
-    let patch = match version_split.next() {
-        Some(item) => match item.parse::<i32>() {
-            Ok(value) => value,
-            Err(error) => {
-                log_error(&format!(
-                    "Patch value could not be parsed as an int.({})",
-                    error
-                ));
-                0
-            }
-        },
-        None => {
-            log_error("Failed to get patch version number. Setting to 0.");
-            0
-        }
-    };
+    let patch = version_split[2].parse::<i32>().map_err(|error| {
+        Rc::from(format!(
+            "Patch value could not be parsed as an int.({})",
+            error
+        ))
+    })?;
 
-    Version {
+    Ok(Version {
         major,
         minor,
         patch,
-    }
+    })
 }
 
-use crate::log::log_error;
-
+use std::rc::Rc;
