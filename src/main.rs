@@ -22,14 +22,14 @@ const HOME_ENV_STR: &'static str = "HOME";
 #[cfg(windows)]
 const HOME_ENV_STR: &'static str = "USERPROFILE";
 
-struct Collector(Vec<u8>);
+// struct Collector(Vec<u8>);
 
-impl Handler for Collector {
-    fn write(&mut self, data: &[u8]) -> Result<usize, WriteError> {
-        self.0.extend_from_slice(data);
-        Ok(data.len())
-    }
-}
+// impl Handler for Collector {
+//     fn write(&mut self, data: &[u8]) -> Result<usize, WriteError> {
+//         self.0.extend_from_slice(data);
+//         Ok(data.len())
+//     }
+// }
 
 fn process_arguments(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
     match args[1].as_ref() {
@@ -110,5 +110,4 @@ fn main() {
 use std::path::Path;
 use std::rc::Rc;
 
-use curl::easy::{Handler, WriteError};
 use log::{log_error, log_warning};

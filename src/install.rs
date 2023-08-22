@@ -262,47 +262,24 @@ fn download_strings(cvm_home: &Path, version: &str) -> Result<HelperStrings, Rc<
 
 fn download(cvm_home: &Path, version: &str) -> Result<(), Rc<str>> {
     let strings = download_strings(cvm_home, version)?;
-    let mut easy = Easy2::new(Collector(Vec::new()));
 
-    easy.url(&strings.download_url).map_err(|error| {
-        Rc::from(format!(
-            "Failed to set url for fetch cmake releases. ({})",
-            error
-        ))
-    })?;
-
-    easy.get(true)
-        .map_err(|error| Rc::from(format!("Failed to set request method as GET. ({})", error)))?;
-
-    easy.follow_location(true)
-        .map_err(|error| Rc::from(format!("Failed to set url redirect. ({})", error)))?;
-
-    let mut headers = List::new();
-    headers
-        .append("Accept: application/vnd.github.v3+json")
-        .map_err(|error| Rc::from(format!("Failed to append header item to list. ({})", error)))?;
-
-    headers
-        .append("User-Agent: request")
-        .map_err(|error| Rc::from(format!("Failed to append header item to list. ({})", error)))?;
-
-    easy.http_headers(headers)
-        .map_err(|error| Rc::from(format!("Failed to set http headers. ({})", error)))?;
-
-    println!("CMake download started...");
-    easy.perform()
-        .map_err(|error| Rc::from(format!("Failed at executing request. ({})", error)))?;
-
-    let code = easy
-        .response_code()
-        .map_err(|error| Rc::from(format!("Failed to retrieve response code. ({})", error)))?;
-
-    if code != 200 {
-        return Err(Rc::from(format!(
-            "Specified version: {}, failed to install or doesnt exist. Response code: {}",
-            version, code
-        )));
-    }
+    println!("Downloading CMake {}...", version);
+    let byte_data = blocking::Client::new()
+        .get(strings.download_url)
+        .header(
+            header::USER_AGENT,
+            format!("cvm {} request", env!("CARGO_PKG_VERSION")),
+        )
+        .header(header::ACCEPT, "application/vnd.github.v3+json")
+        .send()
+        .map_err(|error| {
+            Rc::from(format!(
+                "Failed to request releases from github. ({})",
+                error
+            ))
+        })?
+        .bytes()
+        .map_err(|error| Rc::from(format!("Failed to get bytes from request. ({})", error)))?;
 
     println!("Writing data to file...");
     let mut file = OpenOptions::new()
@@ -316,7 +293,7 @@ fn download(cvm_home: &Path, version: &str) -> Result<(), Rc<str>> {
             ))
         })?;
 
-    file.write_all(easy.get_ref().0.as_slice())
+    file.write_all(byte_data.as_ref())
         .map_err(|error| Rc::from(format!("Failed to writed saved data to file. ({})", error)))?;
 
     println!("Extracting...");
@@ -370,8 +347,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::rc::Rc;
 
-use curl::easy::{Easy2, List};
-
+use reqwest::{blocking, header};
 use term_inquiry::{InquiryMessage, List as IList};
 
 use crate::releases::{
@@ -379,4 +355,3 @@ use crate::releases::{
 };
 use crate::switch::switch;
 use crate::utils;
-use crate::Collector;

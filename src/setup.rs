@@ -6,8 +6,7 @@ fn validate_caches(cvm_home: &Path) -> Result<(), Rc<str>> {
         .map_err(|error| Rc::from(format!("Failed to open cvm_cache file. ({})", error)))?;
 
     let mut reader = std::io::BufReader::new(file);
-    let latest = latest_release();
-    let latest_release = &latest[1..];
+    let latest_release = latest_release()?;
     let mut line = String::new();
 
     reader.read_line(&mut line).map_err(|error| {
@@ -20,7 +19,7 @@ fn validate_caches(cvm_home: &Path) -> Result<(), Rc<str>> {
     line.pop();
 
     // check if cache is updated.
-    if line == latest_release {
+    if line == *latest_release {
         return Ok(());
     }
 
