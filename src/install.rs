@@ -1,122 +1,101 @@
-pub fn install_version(args: &Vec<String>, cvm_home: &str) {
+pub fn install_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
     if args.len() > 3 {
-        log_error("Option recieve more than expected arguments");
-        return
+        return Err(Rc::from(
+            "Command 'install' must only contain version to install or be empty for interactive.",
+        ));
     }
 
-    let releases = match cached_releases(cvm_home) {
-        Ok(releases) => releases,
-        Err(error) => {
-            log_error(
-                &format!("Failed to retrieve cached releases. ({})", error)
-            );
-            return
-        }
-    };
+    let releases = cached_releases(cvm_home)?;
+    let tag = get_tag(&releases, args)?;
 
-    let tag = if args.len() == 2 {
-        if releases.is_empty() {
-            println!("Seem that we do not have any cached CMake releases. Try \
-                cleaning with 'cvm remove --all' and try again");
-            return
-        }
+    if tag.is_empty() {
+        return Ok(());
+    }
 
-        let message = String::from("Please select a cmake verson to install:");
-        let mut builder = IList::<String>::new(message);
-
-        for i in 0..releases.len() {
-            if i == 11 {
-                break
-            }
-
-            builder = builder.add_item(&releases[i], releases[i].clone());
-        }
-
-        let result = builder.inquire();
-
-        match result {
-            Ok(selected) => selected,
-            Err(inq_msg) => match inq_msg {
-                InquiryMessage::CloseRequested => {
-                    println!("\nSession was canceled. Exiting...");
-                    return
-                },
-                _ => {
-                    log_error("Inquiry failed. exiting session");
-                    return
-                }
-            }
-        }
-    } else {
-        args[2].clone()
-    };
-
-    let current = match currently_installed(cvm_home) {
-        Ok(version) => version,
-        Err(error) => {
-            log_error(&format!("Failed to get currently install version. ({})", error));
-            String::new()
-        }
-    };
-
-    if *tag == current {
+    // We don't mind if no versions are currently installed.
+    let current = current_version(cvm_home).unwrap_or(Rc::from(""));
+    if *tag == *current {
         println!("CMake v{}, has already been installed and selected.", tag);
-        return
+        return Ok(());
     }
 
     if !current.is_empty() {
-        let from = format!("{}/bins/current", cvm_home);
-        let to = format!("{}/bins/cmake-{}", cvm_home, current);
+        let from = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT);
+        let to = cvm_home
+            .join(crate::CVM_BINS)
+            .join(format!("cmake-{}", current));
 
-        if let Err(error) = std::fs::rename(from, to) {
-            log_error(&format!("Failed to rename directory. ({})", error));
-            return
-        }
+        std::fs::rename(from, to)
+            .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
     }
 
-    let installed_versions = match installed(cvm_home) {
-        Ok(versions) => versions,
-        Err(error) => {
-            log_error(&format!("Failed to retrieve installed versions. ({})", error));
-            return
-        }
-    };
+    let installed_versions = installed(cvm_home)?;
 
     if is_installed(&tag, &installed_versions) {
         println!("Version {} is already installed. Switching...", tag);
-        switch(&tag, cvm_home);
-        return
+        switch(&tag, cvm_home)?;
+        return Ok(());
     }
 
-    if !download(cvm_home, &tag) {
-        return
+    download(cvm_home, &tag)?;
+    set_current_install(cvm_home, &tag)?;
+    set_installed(cvm_home, &tag)?;
+
+    Ok(())
+}
+
+fn get_tag(releases: &Vec<Rc<str>>, args: &Vec<Rc<str>>) -> Result<Rc<str>, Rc<str>> {
+    if args.len() == 3 {
+        return Ok(args[2].clone());
     }
 
-    set_current_install(cvm_home, &tag);
-    set_installed(cvm_home, &tag);
+    if releases.is_empty() {
+        return Err(Rc::from("Seem that we do not have any cached CMake releases.\nTry cleaning with 'cvm remove --all' and try again"));
+    }
 
+    let message = String::from("Please select a cmake verson to install:");
+    let mut builder = IList::<String>::new(message);
+
+    for i in 0..releases.len() {
+        if i == 11 {
+            break;
+        }
+
+        builder = builder.add_item(releases[i].as_ref(), releases[i].to_string());
+    }
+
+    let result = builder.inquire();
+
+    match result {
+        Ok(selected) => Ok(Rc::from(selected)),
+        Err(inq_msg) => match inq_msg {
+            InquiryMessage::CloseRequested => {
+                println!("\nSession was canceled. Exiting...");
+                Ok(Rc::from(""))
+            }
+            _ => Err(Rc::from("Inquiry failed. exiting session")),
+        },
+    }
 }
 
 struct HelperStrings {
-    bins_path: String,
+    bins_path: PathBuf,
     download_url: String,
-    save_path: String,
+    save_path: PathBuf,
     server_name: String,
 }
 
-
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 fn pre_19_2(cvm_home: &str, version: &str) -> HelperStrings {
     let name = format!("cmake-{}", version);
     let server_name = format!("{}-Darwin-x86_64", name);
     let download_url = format!(
         "https://github.com/Kitware/CMake/releases/download/v{}/{}.tar.gz",
-        version,
-        server_name
+        version, server_name
     );
 
-    let bins_path = format!("{}/bins", cvm_home);
-    let save_path = format!("{}/{}.tar.gz", bins_path, name);
+    let bins_path = cvm_home.join(crate::CVM_BINS);
+    let save_path = bins_path.clone().join(format!("{}.tar.gz", name));
 
     HelperStrings {
         bins_path,
@@ -126,14 +105,14 @@ fn pre_19_2(cvm_home: &str, version: &str) -> HelperStrings {
     }
 }
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 fn post_19_1(cvm_home: &str, version: &str) -> HelperStrings {
     let name = format!("cmake-{}", version);
 
     let system = System::new();
     let os_version = match system.get_os_version() {
         Some(version) => version,
-        None => panic!("Failed to get the os version")
+        None => panic!("Failed to get the os version"),
     };
 
     let mac_version = parse_version(&os_version);
@@ -147,12 +126,11 @@ fn post_19_1(cvm_home: &str, version: &str) -> HelperStrings {
     let server_name = format!("{}-{}", name, dw_name);
     let download_url = format!(
         "https://github.com/Kitware/CMake/releases/download/v{}/{}.tar.gz",
-        version,
-        server_name
+        version, server_name
     );
 
-    let bins_path = format!("{}/bins", cvm_home);
-    let save_path = format!("{}/{}.tar.gz", bins_path, name);
+    let bins_path = cvm_home.join(crate::CVM_BINS);
+    let save_path = bins_path.clone().join(format!("{}.tar.gz", name));
 
     HelperStrings {
         bins_path,
@@ -162,11 +140,11 @@ fn post_19_1(cvm_home: &str, version: &str) -> HelperStrings {
     }
 }
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
     let cmake_version = parse_version(version);
     if cmake_version.minor < 19 || cmake_version.minor == 19 && cmake_version.patch <= 1 {
-        return pre_19_2(cvm_home, version)
+        return pre_19_2(cvm_home, version);
     }
 
     post_19_1(cvm_home, version)
@@ -182,27 +160,31 @@ struct Version {
 fn parse_version(version: &str) -> utils::Version {
     let version_clean = match version.find('-') {
         Some(index) => &version[0..index],
-        None => version
+        None => version,
     };
 
     utils::parse_version(version_clean)
 }
 
-#[cfg(target_os="linux")] #[cfg(target_arch="x86_64")]
+#[cfg(target_os = "linux")]
+#[cfg(target_arch = "x86_64")]
 fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
     let cmake_version = parse_version(version);
 
-    let linux = if cmake_version.minor > 19 { "linux" } else { "Linux" };
+    let linux = if cmake_version.minor > 19 {
+        "linux"
+    } else {
+        "Linux"
+    };
     let name = format!("cmake-{}", version);
     let server_name = format!("{}-{}-x86_64", name, linux);
     let download_url = format!(
         "https://github.com/Kitware/CMake/releases/download/v{}/{}.tar.gz",
-        version,
-        server_name
+        version, server_name
     );
 
-    let bins_path = format!("{}/bins", cvm_home);
-    let save_path = format!("{}/{}.tar.gz", bins_path, name);
+    let bins_path = cvm_home.join(crate::CVM_BINS);
+    let save_path = bins_path.clone().join(format!("{}.tar.gz", name));
 
     HelperStrings {
         bins_path,
@@ -213,8 +195,8 @@ fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
 }
 
 #[cfg(windows)]
-fn post_19(cvm_home: &str, version: &str) -> HelperStrings {
-    let arch = if cfg!(target_arch="x86") {
+fn post_19(cvm_home: &Path, version: &str) -> HelperStrings {
+    let arch = if cfg!(target_arch = "x86") {
         "windows-i386"
     } else {
         "windows-x86_64"
@@ -224,12 +206,11 @@ fn post_19(cvm_home: &str, version: &str) -> HelperStrings {
     let server_name = format!("{}-{}", name, arch);
     let download_url = format!(
         "https://github.com/Kitware/CMake/releases/download/v{}/{}.zip",
-        version,
-        server_name
+        version, server_name
     );
 
-    let bins_path = format!("{}/bins", cvm_home);
-    let save_path = format!("{}/{}.zip", bins_path, name);
+    let bins_path = cvm_home.join(crate::CVM_BINS);
+    let save_path = bins_path.clone().join(format!("{}.zip", name));
 
     HelperStrings {
         bins_path,
@@ -240,8 +221,8 @@ fn post_19(cvm_home: &str, version: &str) -> HelperStrings {
 }
 
 #[cfg(windows)]
-fn pre_20(cvm_home: &str, version: &str) -> HelperStrings {
-    let arch = if cfg!(target_arch="x86") {
+fn pre_20(cvm_home: &Path, version: &str) -> HelperStrings {
+    let arch = if cfg!(target_arch = "x86") {
         "32-x86"
     } else {
         "64-x64"
@@ -251,12 +232,11 @@ fn pre_20(cvm_home: &str, version: &str) -> HelperStrings {
     let server_name = format!("{}-win{}", name, arch);
     let download_url = format!(
         "https://github.com/Kitware/CMake/releases/download/v{}/{}.zip",
-        version,
-        server_name
+        version, server_name
     );
 
-    let bins_path = format!("{}/bins", cvm_home);
-    let save_path = format!("{}/{}.zip", bins_path, name);
+    let bins_path = cvm_home.join(crate::CVM_BINS);
+    let save_path = bins_path.clone().join(format!("{}.zip", name));
 
     HelperStrings {
         bins_path,
@@ -267,109 +247,85 @@ fn pre_20(cvm_home: &str, version: &str) -> HelperStrings {
 }
 
 #[cfg(windows)]
-fn download_strings(cvm_home: &str, version: &str) -> HelperStrings {
+fn download_strings(cvm_home: &Path, version: &str) -> HelperStrings {
     let cmake_version = parse_version(version);
     if cmake_version.minor >= 20 {
-        return post_19(cvm_home, version)
+        return post_19(cvm_home, version);
     }
 
     pre_20(cvm_home, version)
 }
 
-fn download(cvm_home: &str, version: &str) -> bool {
+fn download(cvm_home: &Path, version: &str) -> Result<(), Rc<str>> {
     let strings = download_strings(cvm_home, version);
     let mut easy = Easy2::new(Collector(Vec::new()));
 
-    if let Err(error) = easy.url(&strings.download_url) {
-        log_error(
-            &format!("Failed to set url for fetch cmake releases. ({})", error)
-        );
-        return false
-    }
+    easy.url(&strings.download_url).map_err(|error| {
+        Rc::from(format!(
+            "Failed to set url for fetch cmake releases. ({})",
+            error
+        ))
+    })?;
 
-    if let Err(error) = easy.get(true) {
-        log_error(
-            &format!("Failed to set request method as GET. ({})", error)
-        );
-        return false
-    }
+    easy.get(true)
+        .map_err(|error| Rc::from(format!("Failed to set request method as GET. ({})", error)))?;
 
-    if let Err(error) = easy.follow_location(true) {
-        log_error(&format!("Failed to set url redirect. ({})", error));
-        return false
-    }
+    easy.follow_location(true)
+        .map_err(|error| Rc::from(format!("Failed to set url redirect. ({})", error)))?;
 
     let mut headers = List::new();
-    if let Err(error) = headers.append("Accept: application/vnd.github.v3+json") {
-        log_error(
-            &format!("Failed to append header item to list. ({})", error)
-        );
-        return false
-    }
+    headers
+        .append("Accept: application/vnd.github.v3+json")
+        .map_err(|error| Rc::from(format!("Failed to append header item to list. ({})", error)))?;
 
-    if let Err(error) = headers.append("User-Agent: request") {
-        log_error(
-            &format!("Failed to append header item to list. ({})", error)
-        );
-        return false
-    }
+    headers
+        .append("User-Agent: request")
+        .map_err(|error| Rc::from(format!("Failed to append header item to list. ({})", error)))?;
 
-    if let Err(error) = easy.http_headers(headers) {
-        log_error(
-            &format!("Failed to set http headers. ({})", error)
-        );
-        return false
-    }
+    easy.http_headers(headers)
+        .map_err(|error| Rc::from(format!("Failed to set http headers. ({})", error)))?;
 
     println!("CMake download started...");
-    if let Err(error) = easy.perform() {
-        log_error(
-            &format!("Failed at executing request. ({})", error)
-        );
-        return false
-    }
+    easy.perform()
+        .map_err(|error| Rc::from(format!("Failed at executing request. ({})", error)))?;
 
-    match easy.response_code() {
-        Ok(code) => if code != 200 {
-            log_error(
-                &format!("Specified version: {}, failed to install or doesnt exist. Response code: {}", version, code)
-            );
-            return false
-        },
-        Err(error) => {
-            log_error(
-                &format!("Failed to retrieve response code. ({})", error)
-            );
-            return false
-        }
+    let code = easy
+        .response_code()
+        .map_err(|error| Rc::from(format!("Failed to retrieve response code. ({})", error)))?;
+
+    if code != 200 {
+        return Err(Rc::from(format!(
+            "Specified version: {}, failed to install or doesnt exist. Response code: {}",
+            version, code
+        )));
     }
 
     println!("Writing data to file...");
-    let file_result = OpenOptions::new()
+    let mut file = OpenOptions::new()
         .write(true)
         .create(true)
-        .open(&strings.save_path);
+        .open(&strings.save_path)
+        .map_err(|error| {
+            Rc::from(format!(
+                "Faild to create save file for download. ({})",
+                error
+            ))
+        })?;
 
-    let mut file = match file_result {
-        Ok(file) => file,
-        Err(error) => {
-            log_error(&format!("Faild to create save file for download. ({})", error));
-            return false
-        }
-    };
-
-    if let Err(error) = file.write_all(easy.get_ref().0.as_slice()) {
-        log_error(&format!("Failed to writed saved data to file. ({})", error));
-        return false
-    }
+    file.write_all(easy.get_ref().0.as_slice())
+        .map_err(|error| Rc::from(format!("Failed to writed saved data to file. ({})", error)))?;
 
     println!("Extracting...");
-    println!("{} - {}", strings.save_path, strings.bins_path);
+    println!(
+        "{} - {}",
+        strings.save_path.to_str().unwrap_or(""),
+        strings.bins_path.to_str().unwrap_or("")
+    );
 
     let command = format!(
         "tar -xf \"{}\" -C \"{}\"",
-        strings.save_path,
-        strings.bins_path
+        strings.save_path.to_str().unwrap_or(""),
+        strings.bins_path.to_str().unwrap_or("")
     );
 
     #[cfg(unix)]
@@ -378,61 +334,45 @@ fn download(cvm_home: &str, version: &str) -> bool {
     #[cfg(windows)]
     let program = "powershell";
 
-    let result = std::process::Command::new(program)
+    let mut child = std::process::Command::new(program)
         .arg("-c")
         .arg(&command)
         .stdout(Stdio::piped())
-        .spawn();
+        .spawn()
+        .map_err(|error| Rc::from(format!("Failed to spawn unzip command. ({})", error)))?;
 
-    let status_result = match result {
-        Ok(mut child) => child.wait(),
-        Err(error) => {
-            log_error(&format!("Failed to spawn unzip command. ({})", error));
-            return false
-        }
-    };
+    child
+        .wait()
+        .map_err(|error| Rc::from(format!("Failed to run unzip command. ({})", error)))?;
 
-    if let Err(error) = status_result {
-        log_error(&format!("Failed to run unzip command. ({})", error));
-        return false
-    }
+    let from = strings.bins_path.join(strings.server_name);
+    let to = strings.bins_path.join(crate::CVM_CURRENT);
 
-    let from = format!("{}/{}", strings.bins_path, strings.server_name);
-    let to = format!("{}/current", strings.bins_path);
+    std::fs::rename(from, to)
+        .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
 
-    if let Err(error) = std::fs::rename(from, to) {
-        log_error(&format!("Failed to rename directory. ({})", error));
-        return false
-    }
+    std::fs::remove_file(strings.save_path)
+        .map_err(|error| Rc::from(format!("Failed to cleanup download. ({})", error)))?;
 
-    if let Err(error) = std::fs::remove_file(strings.save_path) {
-        log_error(&format!("Failed to cleanup download. ({})", error));
-        return false
-    }
-
-    true
+    Ok(())
 }
 
-#[cfg(target_os="macos")]
-use sysinfo::{ System, SystemExt };
+#[cfg(target_os = "macos")]
+use sysinfo::{System, SystemExt};
 
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::rc::Rc;
 
-use curl::easy::{ Easy2, List };
+use curl::easy::{Easy2, List};
 
-use term_inquiry::{ List as IList, InquiryMessage };
+use term_inquiry::{InquiryMessage, List as IList};
 
-use crate::switch::switch;
 use crate::releases::{
-    cached_releases,
-    currently_installed,
-    set_current_install,
-    set_installed,
-    installed,
-    is_installed
+    cached_releases, current_version, installed, is_installed, set_current_install, set_installed,
 };
-use crate::Collector;
-use crate::log::log_error;
+use crate::switch::switch;
 use crate::utils;
+use crate::Collector;

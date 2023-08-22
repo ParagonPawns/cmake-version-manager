@@ -3,39 +3,39 @@ pub fn is_version_number(version: &str) -> bool {
 
     let version_split_clone = version_split.clone();
     if version_split_clone.count() != 3 {
-        return false
+        return false;
     }
 
     let major = match version_split.next() {
         Some(item) => item,
-        None => return false
+        None => return false,
     };
 
     for letter in major.chars() {
         if !letter.is_numeric() {
-            return false
+            return false;
         }
     }
 
     let minor = match version_split.next() {
         Some(item) => item,
-        None => return false
+        None => return false,
     };
 
     for letter in minor.chars() {
         if !letter.is_numeric() {
-            return false
+            return false;
         }
     }
 
     let patch = match version_split.next() {
         Some(item) => item,
-        None => return false
+        None => return false,
     };
 
     for letter in patch.chars() {
         if !letter.is_numeric() {
-            return false
+            return false;
         }
     }
 
@@ -56,9 +56,10 @@ pub fn parse_version(version: &str) -> Version {
         Some(item) => match item.parse::<i32>() {
             Ok(value) => value,
             Err(error) => {
-                log_error(
-                    &format!("Major value could not be parsed as an int.({})", error)
-                );
+                log_error(&format!(
+                    "Major value could not be parsed as an int.({})",
+                    error
+                ));
                 0
             }
         },
@@ -72,9 +73,10 @@ pub fn parse_version(version: &str) -> Version {
         Some(item) => match item.parse::<i32>() {
             Ok(value) => value,
             Err(error) => {
-                log_error(
-                    &format!("Minor value could not be parsed as an int.({})", error)
-                );
+                log_error(&format!(
+                    "Minor value could not be parsed as an int.({})",
+                    error
+                ));
                 0
             }
         },
@@ -88,9 +90,10 @@ pub fn parse_version(version: &str) -> Version {
         Some(item) => match item.parse::<i32>() {
             Ok(value) => value,
             Err(error) => {
-                log_error(
-                    &format!("Patch value could not be parsed as an int.({})", error)
-                );
+                log_error(&format!(
+                    "Patch value could not be parsed as an int.({})",
+                    error
+                ));
                 0
             }
         },
@@ -108,3 +111,4 @@ pub fn parse_version(version: &str) -> Version {
 }
 
 use crate::log::log_error;
+

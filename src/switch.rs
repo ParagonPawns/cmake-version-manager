@@ -1,95 +1,91 @@
-pub fn switch_version(args: &Vec<String>, cvm_home: &str) {
-    let installed = match installed(cvm_home) {
-        Ok(installed) => installed,
-        Err(error) => {
-            log_error(&format!("Failed to retrieve installed versions. ({})", error));
-            return
-        }
-    };
+pub fn switch_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
+    let installed = installed(cvm_home)?;
 
-    let tag = if args.len() == 2 {
-        if installed.is_empty() {
-            println!("There are no installed versions of CMake that we are tracking.");
-            return
-        }
+    let tag = get_tag(args, &installed)?;
 
-        let message = String::from("Please select a cmake verson to switch to:");
-        let mut builder = List::<String>::new(message);
+    if tag.is_empty() {
+        return Ok(());
+    }
 
-        for i in 0.. installed.len() {
-            builder = builder.add_item(&installed[i], installed[i].clone());
-        }
+    // We don't mind if no versions are currently installed.
+    let current = current_version(cvm_home).unwrap_or("".into());
 
-        let result = builder.inquire();
-
-        match result {
-            Ok(selected) => selected,
-            Err(inq_msg) => match inq_msg {
-                InquiryMessage::CloseRequested => {
-                    println!("\nSession was canceled. Exiting...");
-                    return
-                },
-                _ => {
-                    log_error("Inquiry failed. exiting session");
-                    return
-                }
-            }
-        }
-    } else {
-        args[2].clone()
-    };
-
-    let current = match currently_installed(cvm_home) {
-        Ok(current) => current,
-        Err(error) => {
-            log_error(&format!("Failed to get currently installed version. ({})", error));
-            return
-        }
-    };
-
-    if *tag == current {
+    if *tag == *current {
         println!("CMake version {} is already selected.", tag);
-        return
+        return Ok(());
     }
 
     println!("Checking to see if version is already installed...");
     if !is_installed(&tag, &installed) {
-        println!("CMake version {0} is not installed. Please run 'cvm install {0}'", tag);
-        return
+        println!(
+            "CMake version {0} is not installed. Please run 'cvm install {0}'",
+            tag
+        );
+        return Ok(());
     }
 
     if !current.is_empty() {
-        let from = format!("{}/bins/current", cvm_home);
-        let to = format!("{}/bins/cmake-{}", cvm_home, current);
+        let from = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT);
+        let to = cvm_home
+            .join(crate::CVM_BINS)
+            .join(format!("cmake-{}", current));
 
-        if let Err(error) = std::fs::rename(from, to) {
-            log_error(&format!("Failed to rename directory. ({})", error));
-            return
-        }
+        std::fs::rename(from, to)
+            .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
     }
 
     println!("Switching...");
-    switch(&tag, cvm_home);
-    set_current_install(cvm_home, &tag);
+    switch(&tag, cvm_home)?;
+    set_current_install(cvm_home, &tag)?;
+
     println!("Successfully switch to CMake v{}", tag);
+    Ok(())
 }
 
-pub fn switch(version: &str, cvm_home:&str) {
-    let from = format!("{}/bins/cmake-{}", cvm_home, version);
-    let to = format!("{}/bins/current", cvm_home);
+fn get_tag(args: &Vec<Rc<str>>, installed: &Vec<Rc<str>>) -> Result<Rc<str>, Rc<str>> {
+    if args.len() == 3 {
+        return Ok(args[2].clone());
+    }
 
-    if let Err(error) = std::fs::rename(from, to) {
-        log_error(&format!("Failed to rename directory. ({})", error));
-        return
+    if installed.is_empty() {
+        println!("There are no installed versions of CMake that we are tracking.");
+        return Ok("".into());
+    }
+
+    let message = String::from("Please select a cmake verson to switch to:");
+    let mut builder = List::<String>::new(message);
+
+    for i in 0..installed.len() {
+        builder = builder.add_item(installed[i].as_ref(), installed[i].to_string());
+    }
+
+    let result = builder.inquire();
+
+    match result {
+        Ok(selected) => Ok(selected.into()),
+        Err(inq_msg) => match inq_msg {
+            InquiryMessage::CloseRequested => {
+                println!("\nSession was canceled. Exiting...");
+                Ok("".into())
+            }
+            _ => Err("Inquiry failed. exiting session".into()),
+        },
     }
 }
 
-use term_inquiry::{ List, InquiryMessage };
+pub fn switch(version: &str, cvm_home: &Path) -> Result<(), Rc<str>> {
+    let from = cvm_home
+        .join(crate::CVM_BINS)
+        .join(format!("cmake-{}", version));
+    let to = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT);
 
-use crate::releases::{
-    currently_installed,
-    installed,
-    is_installed,
-    set_current_install
-};
-use crate::log::log_error;
+    std::fs::rename(from, to)
+        .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))
+}
+
+use std::path::Path;
+use std::rc::Rc;
+
+use term_inquiry::{InquiryMessage, List};
+
+use crate::releases::{current_version, installed, is_installed, set_current_install};

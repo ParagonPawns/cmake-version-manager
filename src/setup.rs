@@ -1,113 +1,89 @@
-fn validate_caches(cvm_home: &str) {
-    let result = fs::OpenOptions::new()
+fn validate_caches(cvm_home: &Path) -> Result<(), Rc<str>> {
+    let file = fs::OpenOptions::new()
         .read(true)
         .write(true)
-        .open(String::from(cvm_home) + crate::CVM_CACHE);
+        .open(cvm_home.join(crate::CVM_CACHE))
+        .map_err(|error| Rc::from(format!("Failed to open cvm_cache file. ({})", error)))?;
 
-    let mut reader = match result {
-        Ok(file) => std::io::BufReader::new(file),
-        Err(error) => {
-            log_error(&format!("Failed to open cvm_cache file. ({})", error));
-            return
-        }
-    };
-
+    let mut reader = std::io::BufReader::new(file);
     let latest = latest_release();
     let latest_release = &latest[1..];
     let mut line = String::new();
 
-    if let Err(error) = reader.read_line(&mut line) {
-        log_error(&format!("Failed to read first line in cache file. ({})", error));
-        return
-    }
+    reader.read_line(&mut line).map_err(|error| {
+        Rc::from(format!(
+            "Failed to read first line in cache file. ({})",
+            error
+        ))
+    })?;
 
     line.pop();
 
     // check if cache is updated.
     if line == latest_release {
-        return
+        return Ok(());
     }
 
     println!("New release detected updating available versions...");
     let releases = releases();
     let mut file = reader.into_inner();
 
-    if let Err(error) = file.set_len(0) {
-        log_error(&format!("Failed to clear cache file. ({})", error));
-        return
-    }
+    file.set_len(0)
+        .map_err(|error| Rc::from(format!("Failed to clear cache file. ({})", error)))?;
 
-    if let Err(error) = file.seek(std::io::SeekFrom::Start(0)) {
-        log_error(&format!("Failed to seek to beginning of file. ({})", error));
-        return
-    }
+    file.seek(std::io::SeekFrom::Start(0))
+        .map_err(|error| Rc::from(format!("Failed to seek to beginning of file. ({})", error)))?;
 
     for mut release in releases {
         release.push('\n');
-        if let Err(error) = file.write(release[1..].as_bytes()) {
-            log_error(
-                &format!("Failed to write release to cache file. ({})", error)
-            );
-        }
+        file.write(release[1..].as_bytes()).map_err(|error| {
+            Rc::from(format!(
+                "Failed to write release to cache file. ({})",
+                error
+            ))
+        })?;
     }
+
+    Ok(())
 }
 
-pub fn setup_cvm(cvm_home: &str) -> bool {
-    if Path::new(cvm_home).exists() {
-        validate_caches(cvm_home);
-        return true
+pub fn setup_cvm(cvm_home: &Path) -> Result<(), Rc<str>> {
+    if cvm_home.exists() {
+        validate_caches(cvm_home)?;
+        return Ok(());
     }
 
     println!("'.cvm' directory is not set up. Setting up now...");
-    // create our directory
-    match fs::create_dir(cvm_home) {
-        Ok(..) => {},
-        Err(error) => {
-            log_error(&format!("Failed to create directory. ({})", error));
-            return false
-        }
-    };
 
-    match fs::create_dir(String::from(cvm_home) + "/bins") {
-        Ok(..) => {},
-        Err(error) => {
-            log_error(&format!("Failed to create bins directory. ({})", error));
-            return false
-        }
-    };
+    log_info("Creating cvm home directory...");
+    fs::create_dir(cvm_home)
+        .map_err(|error| Rc::from(format!("Failed to create directory. ({})", error)))?;
 
-    match fs::File::create(String::from(cvm_home) + crate::CVM_CACHE) {
-        Ok(..) => {},
-        Err(error) => {
-            log_error(&format!("Failed to create cvm_cache file. ({})", error));
-            return false
-        }
-    }
+    log_info("Creting bins directory...");
+    fs::create_dir(cvm_home.join(crate::CVM_BINS))
+        .map_err(|error| Rc::from(format!("Failed to create bins directory. ({})", error)))?;
 
-    match fs::File::create(String::from(cvm_home) + crate::CVM_INSTALLED) {
-        Ok(..) => {},
-        Err(error) => {
-            log_error(&format!("Failed to create cvm_installed file. ({})", error));
-            return false
-        }
-    }
+    log_info("Creating file to cache available versions...");
+    fs::File::create(cvm_home.join(crate::CVM_CACHE))
+        .map_err(|error| Rc::from(format!("Failed to create cvm_cache file. ({})", error)))?;
 
-    match fs::File::create(String::from(cvm_home) + crate::CVM_CURRENT) {
-        Ok(..) => {},
-        Err(error) => {
-            log_error(&format!("Failed to create cvm_current file. ({})", error));
-            return false
-        }
-    }
+    log_info("Creating file to track installed versions...");
+    fs::File::create(cvm_home.join(crate::CVM_INSTALLED))
+        .map_err(|error| Rc::from(format!("Failed to create cvm_installed file. ({})", error)))?;
 
-    validate_caches(cvm_home);
-    true
+    log_info("Creating file to track currently installed version...");
+    fs::File::create(cvm_home.join(crate::CVM_CURRENT))
+        .map_err(|error| Rc::from(format!("Failed to create cvm_current file. ({})", error)))?;
+
+    validate_caches(cvm_home)?;
+    Ok(())
 }
 
-use std::io::Seek;
-use std::path::Path;
 use std::fs;
-use std::io::{ BufRead, Write };
+use std::io::Seek;
+use std::io::{BufRead, Write};
+use std::path::Path;
+use std::rc::Rc;
 
-use crate::log::log_error;
-use crate::releases::{ latest_release, releases };
+use crate::log::log_info;
+use crate::releases::{latest_release, releases};

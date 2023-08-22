@@ -1,6 +1,6 @@
 pub fn dislay_help() {
     println!(
-r"CMake version manager 'cvm'.
+        r"CMake version manager 'cvm'.
 Usage:
     cvm [OPTIONS]
 
@@ -34,5 +34,6 @@ OPTIONS:
                             interactive mode will be used.
         <version>           Specify a version to switch to. example:
                             cvm switch 3.20.2
-    ");
+"
+    );
 }

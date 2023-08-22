@@ -1,7 +1,9 @@
-pub fn display_version(args: &Vec<String>) {
+pub fn display_version(args: &Vec<Rc<str>>) {
     if args.len() > 2 {
         AnsiBuilder::new()
-            .color().fg().yellow()
+            .color()
+            .fg()
+            .yellow()
             .text("warning: ")
             .reset_attributes()
             .text("Extra arguments will not be read with --version/-v.")
@@ -9,16 +11,24 @@ pub fn display_version(args: &Vec<String>) {
     }
 
     AnsiBuilder::new()
-        .color().fg().green()
+        .color()
+        .fg()
+        .green()
         .text("cvm: ")
-        .color().fg().blue()
+        .color()
+        .fg()
+        .blue()
         .text("v")
         .text(env!("CARGO_PKG_VERSION"))
         .println()
-        .color().fg().gray()
+        .color()
+        .fg()
+        .gray()
         .text("(cmake version manager)")
         .reset_attributes()
         .println();
 }
+
+use std::rc::Rc;
 
 use ansi_builder::AnsiBuilder;
