@@ -42,7 +42,7 @@ pub fn releases() -> Result<Vec<Rc<str>>, Rc<str>> {
     let mut releases = Vec::new();
     for i in 0..json_data.len() {
         match json_data[i]["tag_name"].as_str() {
-            Some(release) => releases.push(release.into()),
+            Some(release) => releases.push(release[1..].into()),
             None => continue,
         };
     }

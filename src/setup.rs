@@ -36,7 +36,7 @@ fn validate_caches(cvm_home: &Path) -> Result<(), Rc<str>> {
 
     for release in releases {
         let release = format!("{}\n", release);
-        file.write(release[1..].as_bytes()).map_err(|error| {
+        file.write(release.as_bytes()).map_err(|error| {
             Rc::from(format!(
                 "Failed to write release to cache file. ({})",
                 error
