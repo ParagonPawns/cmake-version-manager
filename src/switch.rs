@@ -25,7 +25,7 @@ pub fn switch_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str
     }
 
     if !current.is_empty() {
-        let from = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT);
+        let from = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT_DIR);
         let to = cvm_home
             .join(crate::CVM_BINS)
             .join(format!("cmake-{}", current));
@@ -36,7 +36,6 @@ pub fn switch_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str
 
     println!("Switching...");
     switch(&tag, cvm_home)?;
-    set_current_install(cvm_home, &tag)?;
 
     println!("Successfully switch to CMake v{}", tag);
     Ok(())
@@ -52,11 +51,10 @@ fn get_tag(args: &Vec<Rc<str>>, installed: &Vec<Rc<str>>) -> Result<Rc<str>, Rc<
         return Ok("".into());
     }
 
-    let message = String::from("Please select a cmake verson to switch to:");
-    let mut builder = List::<String>::new(message);
+    let mut builder = List::<Rc<str>>::new("Please select a cmake verson to switch to:");
 
     for i in 0..installed.len() {
-        builder = builder.add_item(installed[i].as_ref(), installed[i].to_string());
+        builder = builder.add_item(installed[i].as_ref(), installed[i].clone());
     }
 
     let result = builder.inquire();
@@ -77,10 +75,12 @@ pub fn switch(version: &str, cvm_home: &Path) -> Result<(), Rc<str>> {
     let from = cvm_home
         .join(crate::CVM_BINS)
         .join(format!("cmake-{}", version));
-    let to = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT);
+    let to = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT_DIR);
 
     std::fs::rename(from, to)
-        .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))
+        .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
+
+    set_current_install(cvm_home, version)
 }
 
 use std::path::Path;

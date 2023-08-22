@@ -5,7 +5,7 @@ installed versions of cmake.
 ## Supported Platforms
  * Linux
  * OSX
- * Windows 10
+ * Windows 10 (Powershell and nushell)
 
 ## Install
 To install `cvm` you will need to have cargo. Installing Rust will provide

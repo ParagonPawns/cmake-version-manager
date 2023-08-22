@@ -20,11 +20,16 @@ pub fn install_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<st
     }
 
     if !current.is_empty() {
-        let from = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT);
+        let from = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT_DIR);
         let to = cvm_home
             .join(crate::CVM_BINS)
             .join(format!("cmake-{}", current));
 
+        println!(
+            "Or here. {} to {}",
+            from.to_str().unwrap(),
+            to.to_str().unwrap()
+        );
         std::fs::rename(from, to)
             .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
     }
@@ -53,15 +58,14 @@ fn get_tag(releases: &Vec<Rc<str>>, args: &Vec<Rc<str>>) -> Result<Rc<str>, Rc<s
         return Err("Seem that we do not have any cached CMake releases.\nTry cleaning with 'cvm remove --all' and try again".into());
     }
 
-    let message = String::from("Please select a cmake verson to install:");
-    let mut builder = IList::<String>::new(message);
+    let mut builder = IList::<Rc<str>>::new("Please select a cmake verson to install:");
 
     for i in 0..releases.len() {
         if i == 11 {
             break;
         }
 
-        builder = builder.add_item(releases[i].as_ref(), releases[i].to_string());
+        builder = builder.add_item(releases[i].as_ref(), releases[i].clone());
     }
 
     let result = builder.inquire();
@@ -346,7 +350,7 @@ fn download(cvm_home: &Path, version: &str) -> Result<(), Rc<str>> {
         .map_err(|error| Rc::from(format!("Failed to run unzip command. ({})", error)))?;
 
     let from = strings.bins_path.join(strings.server_name);
-    let to = strings.bins_path.join(crate::CVM_CURRENT);
+    let to = strings.bins_path.join(crate::CVM_CURRENT_DIR);
 
     std::fs::rename(from, to)
         .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;

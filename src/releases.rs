@@ -86,7 +86,7 @@ pub fn installed(cvm_home: &Path) -> Result<Vec<Rc<str>>, Rc<str>> {
 
 pub fn current_version(cvm_home: &Path) -> Result<Rc<str>, Rc<str>> {
     const ERR_STR: &'static str = "Failed to get currently installed version.";
-    let file_path = cvm_home.join(crate::CVM_CURRENT);
+    let file_path = cvm_home.join(crate::CVM_CURRENT_FILE);
     let file = std::fs::File::open(file_path)
         .map_err(|error| Rc::from(format!("{} ({})", ERR_STR, error)))?;
     let mut lines = std::io::BufReader::new(file).lines();
@@ -130,7 +130,7 @@ pub fn set_installed(cvm_home: &Path, install: &str) -> Result<(), Rc<str>> {
 }
 
 pub fn set_current_install(cvm_home: &Path, install: &str) -> Result<(), Rc<str>> {
-    let file_path = cvm_home.join(crate::CVM_CURRENT);
+    let file_path = cvm_home.join(crate::CVM_CURRENT_FILE);
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .open(file_path)

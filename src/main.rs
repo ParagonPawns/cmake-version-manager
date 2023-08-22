@@ -14,7 +14,8 @@ const CVM_BINS: &'static str = "bins";
 const CVM_DIR: &'static str = ".cvm";
 const CVM_CACHE: &'static str = "cvm_cache";
 const CVM_INSTALLED: &'static str = "cvm_installed";
-const CVM_CURRENT: &'static str = "cvm_current";
+const CVM_CURRENT_DIR: &'static str = "current";
+const CVM_CURRENT_FILE: &'static str = "cvm_current";
 
 #[cfg(unix)]
 const HOME_ENV_STR: &'static str = "HOME";

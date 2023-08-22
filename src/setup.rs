@@ -72,7 +72,7 @@ pub fn setup_cvm(cvm_home: &Path) -> Result<(), Rc<str>> {
         .map_err(|error| Rc::from(format!("Failed to create cvm_installed file. ({})", error)))?;
 
     log_info("Creating file to track currently installed version...");
-    fs::File::create(cvm_home.join(crate::CVM_CURRENT))
+    fs::File::create(cvm_home.join(crate::CVM_CURRENT_FILE))
         .map_err(|error| Rc::from(format!("Failed to create cvm_current file. ({})", error)))?;
 
     validate_caches(cvm_home)?;

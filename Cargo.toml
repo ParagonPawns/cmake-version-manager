@@ -19,6 +19,6 @@ sysinfo = "0.18.0"
 
 [dependencies]
 ansi-builder = "0.1.6"
-term-inquiry = "0.1.1"
+term-inquiry = "0.1.2"
 curl = "0.4.38"
 json = "0.12.4"

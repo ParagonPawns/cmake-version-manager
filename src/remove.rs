@@ -19,6 +19,8 @@ pub fn remove(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
                 error
             ))
         })?;
+
+        return Ok(());
     }
 
     println!("Checking if the version we are removing is in use...");
@@ -99,11 +101,10 @@ fn get_tag(args: &Vec<Rc<str>>, installed: &Vec<Rc<str>>) -> Result<Rc<str>, Rc<
         return Ok("".into());
     }
 
-    let message = String::from("Please select a cmake verson to remove:");
-    let mut builder = List::<String>::new(message);
+    let mut builder = List::<Rc<str>>::new("Please select a cmake verson to remove:");
 
     for i in 0..installed.len() {
-        builder = builder.add_item(installed[i].as_ref(), installed[i].to_string());
+        builder = builder.add_item(installed[i].as_ref(), installed[i].clone());
     }
 
     let result = builder.inquire();
