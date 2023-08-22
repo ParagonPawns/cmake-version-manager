@@ -1,8 +1,9 @@
 pub fn install_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
     if args.len() > 3 {
-        return Err(Rc::from(
-            "Command 'install' must only contain version to install or be empty for interactive.",
-        ));
+        return Err(
+            "Command 'install' must only contain version to install or be empty for interactive."
+                .into(),
+        );
     }
 
     let releases = cached_releases(cvm_home)?;
@@ -25,11 +26,6 @@ pub fn install_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<st
             .join(crate::CVM_BINS)
             .join(format!("cmake-{}", current));
 
-        println!(
-            "Or here. {} to {}",
-            from.to_str().unwrap(),
-            to.to_str().unwrap()
-        );
         std::fs::rename(from, to)
             .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
     }
@@ -304,7 +300,7 @@ fn download(cvm_home: &Path, version: &str) -> Result<(), Rc<str>> {
     );
 
     let command = format!(
-        "tar -xf \"{}\" -C \"{}\"",
+        r#"tar -xf "{}" -C "{}""#,
         strings.save_path.to_str().unwrap_or(""),
         strings.bins_path.to_str().unwrap_or("")
     );
