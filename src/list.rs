@@ -17,7 +17,7 @@ pub fn list_releases(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>
     }
 
     if args.len() >= 3 && args[2].as_ref() != "--all" && args[2].as_ref() != "-a" {
-        return Err("Option 'list' must have expected optional flags: --list or -l".into());
+        return Err("Option 'list' must have expected optional flags: --all or -a".into());
     }
 
     for release in releases {
