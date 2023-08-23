@@ -17,7 +17,7 @@ pub fn list_releases(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>
     }
 
     if args.len() >= 3 && args[2].as_ref() != "--all" && args[2].as_ref() != "-a" {
-        return Err("Option 'list' must have expected optional flags: --all or -a".into());
+        return Err(INVALID_ARGS_STR.into());
     }
 
     for release in releases {
@@ -46,6 +46,9 @@ fn print_release(release: &str, current: &str, installed: &Vec<Rc<str>>) {
         .reset_attributes()
         .println();
 }
+
+const INVALID_ARGS_STR: &'static str =
+    "Option 'list' must have expected optional flags: --all or -a";
 
 use std::path::Path;
 use std::rc::Rc;

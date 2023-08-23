@@ -13,12 +13,8 @@ pub fn remove(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
             cvm_home.to_str().unwrap_or("")
         );
 
-        std::fs::remove_dir_all(cvm_home).map_err(|error| {
-            Rc::from(format!(
-                "Failed to remove $HOME/.cvm directory. ({})",
-                error
-            ))
-        })?;
+        std::fs::remove_dir_all(cvm_home)
+            .map_err(map_error!("Failed to remove $HOME/.cvm directory. ({})"))?;
 
         return Ok(());
     }
@@ -70,20 +66,16 @@ pub fn remove(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .open(file_path)
-        .map_err(|error| Rc::from(format!("Failed to open cvm_current file. ({})", error)))?;
+        .map_err(map_error!("Failed to open cvm_current file. ({})"))?;
 
     file.set_len(0)
-        .map_err(|error| Rc::from(format!("Failed to clear cvm_installed file. ({})", error)))?;
+        .map_err(map_error!("Failed to clear cvm_installed file. ({})"))?;
 
     for version in installed {
         let version = format!("{}\n", version.as_ref());
 
-        file.write(version.as_bytes()).map_err(|error| {
-            Rc::from(format!(
-                "Failed to write current install to file. ({})",
-                error
-            ))
-        })?;
+        file.write(version.as_bytes())
+            .map_err(map_error!("Failed to write current install to file. ({})"))?;
     }
 
     println!("Successfully removed CMake v{}.", tag);
@@ -127,5 +119,6 @@ use std::rc::Rc;
 
 use term_inquiry::{InquiryMessage, List};
 
+use crate::macros::map_error;
 use crate::releases::current_version;
 use crate::releases::installed;

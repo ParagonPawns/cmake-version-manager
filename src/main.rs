@@ -3,24 +3,13 @@ mod install;
 mod install_or_switch;
 mod list;
 mod log;
+mod macros;
 mod releases;
 mod remove;
 mod setup;
 mod switch;
 mod utils;
 mod version;
-
-const CVM_BINS: &'static str = "bins";
-const CVM_DIR: &'static str = ".cvm";
-const CVM_CACHE: &'static str = "cvm_cache";
-const CVM_INSTALLED: &'static str = "cvm_installed";
-const CVM_CURRENT_DIR: &'static str = "current";
-const CVM_CURRENT_FILE: &'static str = "cvm_current";
-
-#[cfg(unix)]
-const HOME_ENV_STR: &'static str = "HOME";
-#[cfg(windows)]
-const HOME_ENV_STR: &'static str = "USERPROFILE";
 
 fn process_arguments(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
     match args[1].as_ref() {
@@ -46,25 +35,19 @@ fn process_arguments(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>
         "--version" | "-v" => {
             version::display_version(&args);
         }
+        x if utils::is_version_number(&x) => {
+            if args.len() != 2 {
+                log::warning(IGNORING_EXTRA_ARGS_STR);
+            }
+
+            install_or_switch::install_or_switch(&args[1], &cvm_home)?;
+        }
         _ => {
-            if utils::is_version_number(&args[1]) {
-                if args.len() != 2 {
-                    log_warning(
-                        "There are other arguments detected after cmake version.\nIgnoring arguments after version.",
-                    );
-                }
+            let mut msg = UNSUPPORTED_ARG_STR.to_string();
+            args.iter()
+                .for_each(|arg| msg.push_str(&format!("{} ", arg.as_ref())));
 
-                install_or_switch::install_or_switch(&args[1], &cvm_home)?;
-                return Ok(());
-            }
-
-            log_error(
-                "The first argument does not match whith any option we support.\nPlease use 'cvm --help' to view all possible options.\nGiven options: ",
-            );
-
-            for i in 1..args.len() {
-                print!("{} ", args[i]);
-            }
+            return Err(msg.into());
         }
     }
 
@@ -75,30 +58,45 @@ fn main() {
     let args: Vec<Rc<str>> = std::env::args().map(|arg| arg.into()).collect();
 
     if args.len() == 1 {
-        log::log_error("Did not get any options for command. Execute 'cvm --help' for options");
+        log::error(NO_ARGS_DETECTED_STR);
         return;
     }
 
     let cvm_home = match std::env::var(HOME_ENV_STR) {
         Ok(path) => Path::new(&path).join(CVM_DIR),
         Err(error) => {
-            log::log_error(&format!("Failed to find $HOME path. ({})", error));
+            log::error(&format!("Failed to find $HOME path. ({})", error));
             return;
         }
     };
 
     if let Err(error) = setup::setup_cvm(&cvm_home) {
-        log::log_error(error.as_ref());
-        log::log_error("Failed to set up cvm for use.");
+        log::error(error.as_ref());
+        log::error(SETUP_FAILURE_STR);
         return;
     }
 
     if let Err(error) = process_arguments(&args, &cvm_home) {
-        log::log_error(error.as_ref());
+        log::error(error.as_ref());
     }
 }
 
+const CVM_BINS: &'static str = "bins";
+const CVM_DIR: &'static str = ".cvm";
+const CVM_CACHE: &'static str = "cvm_cache";
+const CVM_INSTALLED: &'static str = "cvm_installed";
+const CVM_CURRENT_DIR: &'static str = "current";
+const CVM_CURRENT_FILE: &'static str = "cvm_current";
+#[cfg(unix)]
+const HOME_ENV_STR: &'static str = "HOME";
+#[cfg(windows)]
+const HOME_ENV_STR: &'static str = "USERPROFILE";
+const IGNORING_EXTRA_ARGS_STR: &'static str =
+    "There are other arguments detected after cmake version.\nIgnoring arguments after version.";
+const NO_ARGS_DETECTED_STR: &'static str =
+    "Did not get any options for command. Execute 'cvm --help' for options";
+const SETUP_FAILURE_STR: &'static str = "Failed to set up cvm for use.";
+const UNSUPPORTED_ARG_STR: &'static str = "The first argument does not match whith any option we support.\nPlease use 'cvm --help' to view all possible options.\nGiven options: ";
+
 use std::path::Path;
 use std::rc::Rc;
-
-use log::{log_error, log_warning};

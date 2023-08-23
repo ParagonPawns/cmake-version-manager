@@ -1,4 +1,4 @@
-pub fn log_error(msg: &str) {
+pub fn error(msg: &str) {
     AnsiBuilder::new()
         .color()
         .fg()
@@ -10,7 +10,7 @@ pub fn log_error(msg: &str) {
         .println();
 }
 
-pub fn log_warning(msg: &str) {
+pub fn warning(msg: &str) {
     AnsiBuilder::new()
         .color()
         .fg()
@@ -22,7 +22,7 @@ pub fn log_warning(msg: &str) {
         .println();
 }
 
-pub fn log_info(msg: &str) {
+pub fn info(msg: &str) {
     AnsiBuilder::new()
         .color()
         .fg()

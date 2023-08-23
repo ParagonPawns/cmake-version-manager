@@ -1,9 +1,6 @@
 pub fn install_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str>> {
     if args.len() > 3 {
-        return Err(
-            "Command 'install' must only contain version to install or be empty for interactive."
-                .into(),
-        );
+        return Err(TOO_MANY_ARGS_STR.into());
     }
 
     let releases = cached_releases(cvm_home)?;
@@ -26,8 +23,7 @@ pub fn install_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<st
             .join(crate::CVM_BINS)
             .join(format!("cmake-{}", current));
 
-        std::fs::rename(from, to)
-            .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
+        std::fs::rename(from, to).map_err(map_error!("Failed to rename directory. ({})"))?;
     }
 
     let installed_versions = installed(cvm_home)?;
@@ -51,7 +47,7 @@ fn get_tag(releases: &Vec<Rc<str>>, args: &Vec<Rc<str>>) -> Result<Rc<str>, Rc<s
     }
 
     if releases.is_empty() {
-        return Err("Seem that we do not have any cached CMake releases.\nTry cleaning with 'cvm remove --all' and try again".into());
+        return Err(NO_RELEASES_FOUND_STR.into());
     }
 
     let mut builder = IList::<Rc<str>>::new("Please select a cmake verson to install:");
@@ -268,29 +264,19 @@ fn download(cvm_home: &Path, version: &str) -> Result<(), Rc<str>> {
         )
         .header(header::ACCEPT, "application/vnd.github.v3+json")
         .send()
-        .map_err(|error| {
-            Rc::from(format!(
-                "Failed to request releases from github. ({})",
-                error
-            ))
-        })?
+        .map_err(map_error!("Failed to request releases from github. ({})"))?
         .bytes()
-        .map_err(|error| Rc::from(format!("Failed to get bytes from request. ({})", error)))?;
+        .map_err(map_error!("Failed to get bytes from request. ({})"))?;
 
     println!("Writing data to file...");
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
         .open(&strings.save_path)
-        .map_err(|error| {
-            Rc::from(format!(
-                "Faild to create save file for download. ({})",
-                error
-            ))
-        })?;
+        .map_err(map_error!("Faild to create save file for download. ({})"))?;
 
     file.write_all(byte_data.as_ref())
-        .map_err(|error| Rc::from(format!("Failed to writed saved data to file. ({})", error)))?;
+        .map_err(map_error!("Failed to writed saved data to file. ({})"))?;
 
     println!("Extracting...");
     println!(
@@ -316,23 +302,26 @@ fn download(cvm_home: &Path, version: &str) -> Result<(), Rc<str>> {
         .arg(&command)
         .stdout(Stdio::piped())
         .spawn()
-        .map_err(|error| Rc::from(format!("Failed to spawn unzip command. ({})", error)))?;
+        .map_err(map_error!("Failed to spawn unzip command. ({})"))?;
 
     child
         .wait()
-        .map_err(|error| Rc::from(format!("Failed to run unzip command. ({})", error)))?;
+        .map_err(map_error!("Failed to run unzip command. ({})"))?;
 
     let from = strings.bins_path.join(strings.server_name);
     let to = strings.bins_path.join(crate::CVM_CURRENT_DIR);
 
-    std::fs::rename(from, to)
-        .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
+    std::fs::rename(from, to).map_err(map_error!("Failed to rename directory. ({})"))?;
 
     std::fs::remove_file(strings.save_path)
-        .map_err(|error| Rc::from(format!("Failed to cleanup download. ({})", error)))?;
+        .map_err(map_error!("Failed to cleanup download. ({})"))?;
 
     Ok(())
 }
+
+const NO_RELEASES_FOUND_STR: &'static str = "Seems that we do not have any cached CMake releases.\nTry cleaning with 'cvm remove --all' and try again";
+const TOO_MANY_ARGS_STR: &'static str =
+    "Command 'install' must only contain version to install or be empty for interactive.";
 
 #[cfg(target_os = "macos")]
 use sysinfo::{System, SystemExt};
@@ -346,6 +335,7 @@ use std::rc::Rc;
 use reqwest::{blocking, header};
 use term_inquiry::{InquiryMessage, List as IList};
 
+use crate::macros::map_error;
 use crate::releases::{
     cached_releases, current_version, installed, is_installed, set_current_install, set_installed,
 };

@@ -4,8 +4,7 @@ pub fn install_or_switch(version: &str, cvm_home: &Path) -> Result<(), Rc<str>> 
 
     if current.as_ref() == version {
         println!(
-            "Version already installed and set. If not working make sure PATH \
-            is set correctly"
+            "Version already installed and set. If not working make sure PATH is set correctly"
         );
         return Ok(());
     }

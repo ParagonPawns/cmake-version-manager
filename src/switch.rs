@@ -30,8 +30,7 @@ pub fn switch_version(args: &Vec<Rc<str>>, cvm_home: &Path) -> Result<(), Rc<str
             .join(crate::CVM_BINS)
             .join(format!("cmake-{}", current));
 
-        std::fs::rename(from, to)
-            .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
+        std::fs::rename(from, to).map_err(map_error!("Failed to rename directory. ({})"))?;
     }
 
     println!("Switching...");
@@ -77,8 +76,7 @@ pub fn switch(version: &str, cvm_home: &Path) -> Result<(), Rc<str>> {
         .join(format!("cmake-{}", version));
     let to = cvm_home.join(crate::CVM_BINS).join(crate::CVM_CURRENT_DIR);
 
-    std::fs::rename(from, to)
-        .map_err(|error| Rc::from(format!("Failed to rename directory. ({})", error)))?;
+    std::fs::rename(from, to).map_err(map_error!("Failed to rename directory. ({})"))?;
 
     set_current_install(cvm_home, version)
 }
@@ -88,4 +86,5 @@ use std::rc::Rc;
 
 use term_inquiry::{InquiryMessage, List};
 
+use crate::macros::map_error;
 use crate::releases::{current_version, installed, is_installed, set_current_install};

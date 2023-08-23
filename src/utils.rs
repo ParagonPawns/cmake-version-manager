@@ -52,26 +52,17 @@ pub struct Version {
 pub fn parse_version(version: &str) -> Result<Version, Rc<str>> {
     let version_split = version.split('.').collect::<Vec<&str>>();
 
-    let major = version_split[0].parse::<i32>().map_err(|error| {
-        Rc::from(format!(
-            "Major value could not be parsed as an int.({})",
-            error
-        ))
-    })?;
+    let major = version_split[0]
+        .parse::<i32>()
+        .map_err(map_error!("Major value could not be parsed as an int.({})"))?;
 
-    let minor = version_split[1].parse::<i32>().map_err(|error| {
-        Rc::from(format!(
-            "Minor value could not be parsed as an int.({})",
-            error
-        ))
-    })?;
+    let minor = version_split[1]
+        .parse::<i32>()
+        .map_err(map_error!("Minor value could not be parsed as an int.({})"))?;
 
-    let patch = version_split[2].parse::<i32>().map_err(|error| {
-        Rc::from(format!(
-            "Patch value could not be parsed as an int.({})",
-            error
-        ))
-    })?;
+    let patch = version_split[2].parse::<i32>().map_err(map_error!(
+        "Patch value could not be parsed as an int. ({})"
+    ))?;
 
     Ok(Version {
         major,
@@ -81,3 +72,5 @@ pub fn parse_version(version: &str) -> Result<Version, Rc<str>> {
 }
 
 use std::rc::Rc;
+
+use crate::macros::map_error;

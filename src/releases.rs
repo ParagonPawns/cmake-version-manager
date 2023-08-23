@@ -12,21 +12,11 @@ pub fn releases() -> Result<Vec<Rc<str>>, Rc<str>> {
         )
         .header(header::ACCEPT, "application/vnd.github.v3+json")
         .send()
-        .map_err(|error| {
-            Rc::from(format!(
-                "Failed to request releases from github. ({})",
-                error
-            ))
-        })?;
+        .map_err(map_error!("Failed to request releases from github. ({})"))?;
 
     let releases = response
         .json::<Vec<Release>>()
-        .map_err(|error| {
-            Rc::from(format!(
-                "Failed to parse releases from response. ({})",
-                error
-            ))
-        })?
+        .map_err(map_error!("Failed to parse releases from response. ({})"))?
         .iter()
         .map(|release| release.tag_name[1..].into()) // remove prefix 'v' from the version
         .collect();
@@ -37,7 +27,7 @@ pub fn releases() -> Result<Vec<Rc<str>>, Rc<str>> {
 pub fn cached_releases(cvm_home: &Path) -> Result<Vec<Rc<str>>, Rc<str>> {
     let file_path = cvm_home.join(crate::CVM_CACHE);
     let file = std::fs::File::open(file_path)
-        .map_err(|error| Rc::from(format!("Failed to get cached releases. ({})", error)))?;
+        .map_err(map_error!("Failed to get cached releases. ({})"))?;
     let buf = std::io::BufReader::new(file).lines();
 
     let mut cached_versions = Vec::new();
@@ -100,15 +90,11 @@ pub fn set_installed(cvm_home: &Path, install: &str) -> Result<(), Rc<str>> {
         .write(true)
         .append(true)
         .open(file_path)
-        .map_err(|error| Rc::from(format!("Failed to open cvm_current file. ({})", error)))?;
+        .map_err(map_error!("Failed to open cvm_current file. ({})"))?;
 
     let data = format!("{}\n", install);
-    file.write(data.as_bytes()).map_err(|error| {
-        Rc::from(format!(
-            "Failed to write current install to file. ({})",
-            error
-        ))
-    })?;
+    file.write(data.as_bytes())
+        .map_err(map_error!("Failed to write current install to file. ({})"))?;
 
     Ok(())
 }
@@ -118,20 +104,16 @@ pub fn set_current_install(cvm_home: &Path, install: &str) -> Result<(), Rc<str>
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .open(file_path)
-        .map_err(|error| Rc::from(format!("Failed to open cvm_current file. ({})", error)))?;
+        .map_err(map_error!("Failed to open cvm_current file. ({})"))?;
 
     file.set_len(0)
-        .map_err(|error| Rc::from(format!("Failed to clear cvm_current file. ({})", error)))?;
+        .map_err(map_error!("Failed to clear cvm_current file. ({})"))?;
 
     file.seek(std::io::SeekFrom::Start(0))
-        .map_err(|error| Rc::from(format!("Failed to seek to beginning of file. ({})", error)))?;
+        .map_err(map_error!("Failed to seek to beginning of file. ({})"))?;
 
-    file.write(install.as_bytes()).map_err(|error| {
-        Rc::from(format!(
-            "Failed to write current install to file. ({})",
-            error
-        ))
-    })?;
+    file.write(install.as_bytes())
+        .map_err(map_error!("Failed to write current install to file. ({})"))?;
 
     Ok(())
 }
@@ -145,19 +127,11 @@ pub fn latest_release() -> Result<Rc<str>, Rc<str>> {
         )
         .header(header::ACCEPT, "application/vnd.github.v3+json")
         .send()
-        .map_err(|error| {
-            Rc::from(format!(
-                "Failed to request releases from github. ({})",
-                error
-            ))
-        })?;
+        .map_err(map_error!("Failed to request releases from github. ({})"))?;
 
-    let release = response.json::<Release>().map_err(|error| {
-        Rc::from(format!(
-            "Failed to parse releases from response. ({})",
-            error
-        ))
-    })?;
+    let release = response
+        .json::<Release>()
+        .map_err(map_error!("Failed to parse releases from response. ({})"))?;
 
     Ok(release.tag_name[1..].into())
 }
@@ -169,3 +143,5 @@ use std::rc::Rc;
 
 use reqwest::{blocking, header};
 use serde::Deserialize;
+
+use crate::macros::map_error;

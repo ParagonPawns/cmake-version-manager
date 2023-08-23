@@ -54,23 +54,23 @@ pub fn setup_cvm(cvm_home: &Path) -> Result<(), Rc<str>> {
 
     println!("'.cvm' directory is not set up. Setting up now...");
 
-    log_info("Creating cvm home directory...");
+    log::info("Creating cvm home directory...");
     fs::create_dir(cvm_home)
         .map_err(|error| Rc::from(format!("Failed to create directory. ({})", error)))?;
 
-    log_info("Creting bins directory...");
+    log::info("Creating bins directory...");
     fs::create_dir(cvm_home.join(crate::CVM_BINS))
         .map_err(|error| Rc::from(format!("Failed to create bins directory. ({})", error)))?;
 
-    log_info("Creating file to cache available versions...");
+    log::info("Creating file to cache available versions...");
     fs::File::create(cvm_home.join(crate::CVM_CACHE))
         .map_err(|error| Rc::from(format!("Failed to create cvm_cache file. ({})", error)))?;
 
-    log_info("Creating file to track installed versions...");
+    log::info("Creating file to track installed versions...");
     fs::File::create(cvm_home.join(crate::CVM_INSTALLED))
         .map_err(|error| Rc::from(format!("Failed to create cvm_installed file. ({})", error)))?;
 
-    log_info("Creating file to track currently installed version...");
+    log::info("Creating file to track currently installed version...");
     fs::File::create(cvm_home.join(crate::CVM_CURRENT_FILE))
         .map_err(|error| Rc::from(format!("Failed to create cvm_current file. ({})", error)))?;
 
@@ -84,5 +84,5 @@ use std::io::{BufRead, Write};
 use std::path::Path;
 use std::rc::Rc;
 
-use crate::log::log_info;
+use crate::log;
 use crate::releases::{latest_release, releases};
