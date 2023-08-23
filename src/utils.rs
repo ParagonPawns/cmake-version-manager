@@ -1,15 +1,12 @@
 pub fn is_version_number(version: &str) -> bool {
-    let mut version_split = version.split('.');
+    let version_split = version.split('.').collect::<Vec<&str>>();
 
     let version_split_clone = version_split.clone();
-    if version_split_clone.count() != 3 {
+    if version_split_clone.len() != 3 {
         return false;
     }
 
-    let major = match version_split.next() {
-        Some(item) => item,
-        None => return false,
-    };
+    let major = version_split[0];
 
     for letter in major.chars() {
         if !letter.is_numeric() {
@@ -17,10 +14,7 @@ pub fn is_version_number(version: &str) -> bool {
         }
     }
 
-    let minor = match version_split.next() {
-        Some(item) => item,
-        None => return false,
-    };
+    let minor = version_split[1];
 
     for letter in minor.chars() {
         if !letter.is_numeric() {
@@ -28,10 +22,7 @@ pub fn is_version_number(version: &str) -> bool {
         }
     }
 
-    let patch = match version_split.next() {
-        Some(item) => item,
-        None => return false,
-    };
+    let patch = version_split[2];
 
     for letter in patch.chars() {
         if !letter.is_numeric() {
