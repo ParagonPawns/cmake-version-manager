@@ -43,17 +43,25 @@ pub struct Version {
 pub fn parse_version(version: &str) -> Result<Version, Rc<str>> {
     let version_split = version.split('.').collect::<Vec<&str>>();
 
-    let major = version_split[0]
+    let major = version_split
+        .get(0)
+        .ok_or(Rc::from("Failed to get major version."))?
         .parse::<i32>()
         .map_err(map_error!("Major value could not be parsed as an int.({})"))?;
 
-    let minor = version_split[1]
+    let minor = version_split
+        .get(1)
+        .ok_or(Rc::from("Failed to get minor version."))?
         .parse::<i32>()
         .map_err(map_error!("Minor value could not be parsed as an int.({})"))?;
 
-    let patch = version_split[2].parse::<i32>().map_err(map_error!(
-        "Patch value could not be parsed as an int. ({})"
-    ))?;
+    let patch = version_split
+        .get(2)
+        .unwrap_or(&"0")
+        .parse::<i32>()
+        .map_err(map_error!(
+            "Patch value could not be parsed as an int. ({})"
+        ))?;
 
     Ok(Version {
         major,
